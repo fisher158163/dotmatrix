@@ -12,32 +12,32 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 	@IBOutlet var scrollView: UIScrollView!
 	private var scrollContentView = UIView()
 	
-	/// 横方向のセル総数
+	/// 横向单元总数
 	private let numberOfCells_x: Int = 30
-	/// 縦方向のセル総数
+	/// 纵向单元总数
 	private let numberOfCells_y: Int = 30
-	/// エッジ判定閾値（スクリーン端からこの値の範囲にあるセルを徐々に縮小させる）
+	/// 边缘判定阈值（屏幕边缘内的单元会逐渐缩小）
 	private var edgeThreshold = 150.0
 	
 	private var cellSize = 72.0
 	private var cellSpacing = 28.0
-	private var cellCornerRadius = 22.0
+	private var cellCornerRadius = 20.0
 	
-	/// 各セルのframeキャッシュ
+	/// 各单元的 frame 缓存
 	private var cellFrames = [CGRect]()
-	/// 各セルの色キャッシュ（インデックス→CGColor）
+	/// 各单元的颜色缓存（索引→CGColor）
 	private var cellColors = [CGColor]()
 	
-	/// 再利用可能なセルのプール
+	/// 可复用单元池
 	private var reusablePool = [Cell]()
-	/// 現在表示中のセル（グリッドインデックス→Cell）
+	/// 当前显示中的单元（网格索引→Cell）
 	private var visibleCells = [Int: Cell]()
 	
 	private var isSetUp = false
 	
-	/// バックグラウンド中はスクロール処理を無視する
+	/// 后台时忽略滚动处理
 	private var isInBackground = false
-	/// バックグラウンド移行前のcontentOffsetを保持
+	/// 进入后台前保留 contentOffset
 	private var savedContentOffset: CGPoint?
 	
 	override var prefersStatusBarHidden: Bool {
@@ -80,7 +80,6 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		super.viewWillTransition(to: size, with: coordinator)
 		
 		let savedOffset = scrollView.contentOffset
-		
 		coordinator.animate(alongsideTransition: nil) { [weak self] _ in
 			guard let self else { return }
 			self.rebuildFrameCache()
@@ -98,7 +97,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		savedContentOffset = scrollView.contentOffset
 		isInBackground = true
 		
-		// 全セルをプールに回収
+		// 回收全部单元到池中
 		CALayer.disableAnimations {
 			for (_, cell) in visibleCells {
 				cell.isHidden = true
@@ -131,27 +130,26 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 	}
 	
 	// MARK: - Grid Setup
-	
-	/// グリッドデータの初期化（CALayerは生成しない）
+	/// 初始化网格数据（不生成 CALayer）
 	private func setupGrid() {
 		let totalCount = numberOfCells_x * numberOfCells_y
 		
 		updateCanvasSize()
 		buildFrameCache()
 		
-		// 色を事前生成してキャッシュ
+		// 预先生成颜色并缓存
 		cellColors.reserveCapacity(totalCount)
 		for _ in 0..<totalCount {
 			cellColors.append(UIColor(hue: .random(in: 0.0...1.0), saturation: 0.5, brightness: 1.0, alpha: 1.0).cgColor)
 		}
 	}
 	
-	/// frameキャッシュを再構築（回転・復帰時）
+	/// 重建 frame 缓存（旋转/恢复时）
 	private func rebuildFrameCache() {
 		updateCanvasSize()
 		buildFrameCache()
 		
-		// 表示中のセルのframeを更新
+		// 更新可见单元的 frame
 		let contentsScale = view.window?.screen.scale ?? UITraitCollection.current.displayScale
 		CALayer.disableAnimations {
 			for (index, cell) in visibleCells {
@@ -163,7 +161,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 	
 	// MARK: - Cell Pool
 	
-	/// プールからセルを取得、なければ新規生成
+	/// 从池中获取单元，没有则新建
 	private func dequeueCell() -> Cell {
 		if let cell = reusablePool.popLast() {
 			return cell
@@ -175,7 +173,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		return cell
 	}
 	
-	/// セルをプールに返却
+	/// 将单元归还到池中
 	private func recycleCell(_ cell: Cell, index: Int) {
 		cell.isHidden = true
 		cell.transform = CATransform3DIdentity
@@ -232,14 +230,14 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		updateVisibleCells()
 	}
 	
-	/// 現在のスクロール位置に基づいて可視セルの表示状態を更新
+	/// 根据当前滚动位置更新可见单元的显示状态
 	private func updateVisibleCells() {
 		guard isSetUp else { return }
 		
 		let visibleRect = CGRect(origin: scrollView.contentOffset, size: scrollView.bounds.size)
 		let contentsScale = view.window?.screen.scale ?? UITraitCollection.current.displayScale
 		
-		// グリッド座標から可視範囲のインデックス範囲を算出
+		// 由网格坐标计算可见范围的索引区间
 		let step = cellSize + cellSpacing
 		let shiftMargin = step / 2
 		let expandedRect = visibleRect.insetBy(dx: -(step + shiftMargin), dy: -step)
@@ -250,7 +248,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		
 		guard minIndex_x <= maxIndex_x, minIndex_y <= maxIndex_y else { return }
 		
-		// 今回の可視インデックスを収集
+		// 收集本次可见索引
 		var newVisibleIndices = Set<Int>()
 		
 		for iy in minIndex_y...maxIndex_y {
@@ -263,7 +261,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 		}
 		
 		CALayer.disableAnimations {
-			// 画面外に出たセルを回収
+			// 回收移出屏幕的单元
 			for index in visibleCells.keys {
 				if !newVisibleIndices.contains(index) {
 					if let cell = visibleCells[index] {
@@ -272,13 +270,13 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 				}
 			}
 			
-			// 可視セルの割り当てと更新
+			// 分配并更新可见单元
 			for index in newVisibleIndices {
 				let cell: Cell
 				if let existing = visibleCells[index] {
 					cell = existing
 				} else {
-					// プールから取得して配置
+					// 从池中取出并放置
 					cell = dequeueCell()
 					cell.backgroundColor = cellColors[index]
 					cell.frame = cellFrames[index]

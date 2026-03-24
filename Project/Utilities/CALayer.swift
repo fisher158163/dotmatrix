@@ -13,7 +13,7 @@ extension CALayer {
 		borderWidth = width
 	}
 	
-	/// アニメーション無効化ブロック
+	/// 禁用动画的代码块
 	class func disableAnimations(_ animations: () -> Void) {
 		CATransaction.begin()
 		CATransaction.setDisableActions(true)
